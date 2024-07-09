@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="card">
+        <div class="search">
+            <input type="text" placeholder="enter stock name" spellcheck="false">
+            <button title="search"><img src="assets/search.png"></button>
+        </div>
+
+        <div class="error" style="display: none;">
+            <p>Invalid Stock Name</p>
+        </div>
+
+        <div class="stock" style="display: none;">
+            <h1 class="name">TSLA</h1>
+            <h2 class="price">$5</h2>
+            <button title="add" class="addBtn" style="display: none;"><p>Add to Portfolio</p></button>
+            <div class="details">
+                <div class="col">
+                    <img class="arrows" src="assets/up.jpg" alt="">
+                    <div>
+                        <p class="change">+4.00</p>
+                        <p>today</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div>
+                        <p class="percentile">(2.00%)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="errorMsg" style="display: none;">
+            <p>This stock has already been added to your portfolio</p>
+        </div>
+    </div>
+
+    <script>
+        // use API key from financialmodelingprep.com
+        const apiKey = "";
+        const apiSearch = "https://financialmodelingprep.com/api/v3/search?query=";
+        const apiURL = "https://financialmodelingprep.com/api/v3/quote/";
+        const searchBox = document.querySelector(".search input");
+        const searchBtn = document.querySelector(".search button");
+        const addBtn = document.querySelector(".addBtn");
+
+        // get name of stock. By using this first call, a user can enter something like
+        // "Apple" and it will find apple stock
+        async function checkStock(name) {
+            const userSearch = await fetch(apiSearch + name + `&limit=10&exchange=NASDAQ&apikey=${apiKey}`);
+            const data = await userSearch.json();
+            console.log(data);
+
+            if (data.length > 0) {
+
+                // get name of first result only
+                const stock = data[0];
+                document.querySelector(".name").innerHTML = stock.symbol;
+
+                // Display information
+                document.querySelector(".stock").style.display = "block";
+                document.querySelector(".error").style.display = "none";
+
+                // Get advanced stock details by using this second call
+                const response = await fetch(apiURL + stock.symbol + `?apikey=${apiKey}`);
+                const stockData = await response.json();
+                console.log(stockData);
+                
+                // get price, change, and the change percentage numbers
+                document.querySelector(".price").innerHTML = `$${stockData[0].price}`;
+                document.querySelector(".change").innerHTML = `${stockData[0].change}`;
+                document.querySelector(".percentile").innerHTML = `(${stockData[0].changesPercentage}%)`;
+
+                // Update arrows depending if change is + or -
+                const changeArrow = document.querySelector(".arrows");
+                if (stockData[0].change > 0) {
+                    changeArrow.src = "assets/up.jpg";
+                } else {
+                    changeArrow.src = "assets/down.jpg";
+                }
+
+                // Show the "Add to Portfolio" button
+                addBtn.style.display = "block";
+
+                // Add to portfolio button uses local variables
+                addBtn.addEventListener("click", () => {
+                    addPortfolio(stock.symbol, stockData[0].price);
+                });
+
+            } 
+            
+            // invalid input
+            else {
+                document.querySelector(".error").style.display = "block";
+                document.querySelector(".stock").style.display = "none";
+                addBtn.style.display = "none";
+            }
+        }
+        
+        // Saves name and price to localStorage on device
+        // can be accessed in the console, under "Application"
+        function addPortfolio(name, price) {
+            const storedName = localStorage.getItem(name);
+
+            // if stock has already been added to portfolio
+            if (storedName !== null) {
+                document.querySelector(".errorMsg").style.display = "block";
+            } 
+            
+            // add stock to portfolio
+            else {
+                localStorage.setItem(name, price);
+                document.querySelector(".errorMsg").style.display = "none";
+                alert(`${name} has been added to your portfolio at $${price}`);
+            }
+        }
+
+        searchBtn.addEventListener("click", () => {
+            checkStock(searchBox.value);
+        });
+    </script>
+</body>
+</html>
